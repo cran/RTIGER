@@ -1,0 +1,31 @@
+
+export(RTIGER)
+export(sourceJulia)
+export(setupJulia)
+export(calcCOnumber)
+export(dev)
+export(fit)
+export(plotCOs)
+export(generateObject)
+
+exportClasses(RTIGER)
+
+
+importFrom("grDevices", "dev.off", "pdf", "rgb")
+importFrom("graphics", "legend", "points")
+importFrom("stats", "runif")
+importFrom("utils", "read.delim", "write.table", "installed.packages")
+import(e1071)
+import(methods)
+import(GenomicRanges)
+import(TailRank)
+import(reshape2)
+import(ggplot2)
+import(JuliaCall)
+import(reshape2)
+import(ggplot2)
+import(IRanges)
+import(GenomeInfoDb)
+import(qpdf)
+
+
