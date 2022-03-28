@@ -15,6 +15,8 @@
 #' @param showGenAxis boolean parameter whether or not show the genome axis.
 #' @param ratio boolean parameter wether or not to plot the ratio counts
 #' @param window if ratio TRUE, what is the window for the sliding window to be computed of the ratios.
+#' @param from If specified, which to start plotting. Default is one.
+#' @param to If specified, till which position to plot. Default is final chromosomoe.
 #'
 #' @return plot with the genomic segmentation for chromosome chr in sample samp.
 #' @usage plotGenotype(object, samp, chr,
@@ -37,12 +39,14 @@
 plotGenotype = function(object,
          samp,
          chr,
-         col = c("red", "blue", "mediumorchid4"),
+         col = c("red", "blue",  "mediumorchid4"),
          size = c(1,1),
          main = NULL,
          showGenAxis = TRUE,
          ratio = FALSE,
-         window = 10){
+         window = 10,
+         from = NULL,
+         to = NULL){
 
   # if(sum(c("Gviz") %in% rownames(installed.packages())) != 1) stop("To generate this plot you need to have installed Gviz Bioconductor package.\n
   #                                                                  https://bioconductor.org/packages/release/bioc/html/Gviz.html")
@@ -68,7 +72,7 @@ plotGenotype = function(object,
     myratio = FinalRes_chr
     myratio$P1.Allele.Count = posRatio
     myratio$P2.Allele.Count = negRatio
-    myratio = myratio[,c("P1.Allele.Count", "P2.Allele.Count")]
+    myratio = myratio[,c("P2.Allele.Count", "P1.Allele.Count")]
     ratlim = c(-100,100)
     ratgviz = Gviz::DataTrack(myratio, type = "l", col = col[1:2], name = "Allele frequency Ratio", ylim = ratlim)
     size = c(1,1,1)
@@ -81,11 +85,12 @@ plotGenotype = function(object,
   dat = FinalRes_chr[,c("P1.Allele.Count", "total")]
   dat$P2.Allele.Count = - (dat$total - dat$P1.Allele.Count)
   dat = dat[,c("P1.Allele.Count", "P2.Allele.Count")]
-  colnames(mcols(dat)) = c("Reference", "Alternate")
+  colnames(mcols(dat)) = c( "Reference", "Alternate")
   lim = max(abs(as.matrix(mcols(dat))), na.rm = TRUE) + 2
 
   coldata = col[1:2]
-  names(coldata) = c("Reference", "Alternate")
+  names(coldata) = c("Alternate", "Reference")
+  mcols(dat) = mcols(dat)[, c("Alternate", "Reference")]
   datgviz = Gviz::DataTrack(dat, type = "h", name = "Allele frequency", col = coldata, ylim = c(-lim, lim))
 
   names(col) = c("mat", "pat", "het")
@@ -118,14 +123,18 @@ plotGenotype = function(object,
     }
     main = paste(sample.name, "\n", chr)
   }
+  to = ifelse(is.null(to), seqlengths(FinalRes_chr)[chr], to)
+  from = ifelse(is.null(from), 1, from)
   Gviz::plotTracks(mytracks, groups = colnames(mcols(dat)),
              background.title="darkgrey", lwd=2,
-             to= seqlengths(FinalRes_chr)[chr] ,
+             from = from,
+             to=  to,
              main = main,
              sizes=mySize,
+             legend = TRUE,
              showFeatureId=FALSE,
              fontcolor.feature="black",  background.title="darkgrey",
-             showId=TRUE)
+             showId=TRUE, cex.main = 0.7)
 
 }
 

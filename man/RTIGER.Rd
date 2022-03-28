@@ -7,7 +7,7 @@
 RTIGER(expDesign, rigidity=NULL, outputdir=NULL, nstates = 3,
 seqlengths = NULL, eps=0.01, max.iter=50, trace = FALSE,
 tiles = 4e5, all = TRUE, random = FALSE, specific = FALSE,
-nsamples = 20, post.processing = TRUE, save.results = FALSE, verbose = TRUE)
+nsamples = 20, post.processing = TRUE, save.results = TRUE, verbose = TRUE)
 }
 \arguments{
 \item{expDesign}{a data Frame that contains minimum a column with the files direction (name of the column files) and another with a shorter name to be used inside the function.}
@@ -65,7 +65,7 @@ myres = RTIGER(expDesign = expDesign,
                rigidity = 4,
                max.iter = 2,
                trace = FALSE,
-               save.results = FALSE)
+               save.results = TRUE)
 }
 
 }

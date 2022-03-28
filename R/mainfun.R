@@ -23,7 +23,7 @@
 #' @usage RTIGER(expDesign, rigidity=NULL, outputdir=NULL, nstates = 3,
 #' seqlengths = NULL, eps=0.01, max.iter=50, trace = FALSE,
 #' tiles = 4e5, all = TRUE, random = FALSE, specific = FALSE,
-#' nsamples = 20, post.processing = TRUE, save.results = FALSE, verbose = TRUE)
+#' nsamples = 20, post.processing = TRUE, save.results = TRUE, verbose = TRUE)
 #'
 #' @examples
 #'\dontrun{
@@ -40,7 +40,7 @@
 #'                rigidity = 4,
 #'                max.iter = 2,
 #'                trace = FALSE,
-#'                save.results = FALSE)
+#'                save.results = TRUE)
 #'}
 #'
 #' @export RTIGER
@@ -61,7 +61,7 @@ RTIGER = function(expDesign,
                   specific = FALSE,
                   nsamples = 20,
                   post.processing = TRUE,
-                  save.results = FALSE,
+                  save.results = TRUE,
                   verbose = TRUE){
   # Checks
   if(any(seqlengths < tiles)) stop("Your tiling distance is larger than some of your chromosomes. Reduce the tiling parameter.\n")
@@ -144,21 +144,24 @@ RTIGER = function(expDesign,
 
     # Plotting CO number per Sample
     cos = calcCOnumber(myDat)
+    cos = colSums(cos)
     cos = melt(cos)
     rev.newn = myDat@info$expDesign$OName
     names(rev.newn) = myDat@info$expDesign$name
-    colnames(cos) = c("Chr", "Sample", "COs")
-    cos$Sample = rev.newn[cos$Sample]
+    cos$Sample = rev.newn[rownames(cos)]
+    colnames(cos) = c( "COs", "Sample")
     myf = file.path(outputdir, "CO-count-perSample.pdf")
     pdf(myf)
 
     p <- ggplot(data=cos, aes(x=Sample, y=COs)) +
       geom_bar(stat="identity") +
+      # geom_bar() +
       theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
       ylab("Number of COs")+
       theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-            panel.background = element_blank(), axis.line = element_line(colour = "black"))
-    # barplot(colSums(calcCOnumber(myDat)), las = 2)
+            panel.background = element_blank(), axis.line = element_line(colour = "black"),
+            axis.text.y = element_text(angle = 45))+
+      coord_flip()
     print(p)
     dev.off()
 
@@ -210,14 +213,14 @@ RTIGER = function(expDesign,
         }
 
         if(length(hetrat) > 0){
-          hist(hetrat, probability =   TRUE, col = rgb( 0.744,0.34,0.844,0.25), main = "P1 homozygous states", xlab = "Allele ratio", xlim = c(0,100))
+          hist(hetrat, probability =   TRUE, col = rgb( 0.744,0.34,0.844,0.25), main = "Heterozygous states", xlab = "Allele ratio", xlim = c(0,100))
           points(x,y[,"het"],type="l",col=ecolors[2])
           legend("topleft",c( "Fitted Heterozygous\n distribution"),
                  lty = 1, col = c( "violet"), cex = .7)
         }
 
         if(length(matrat) > 0){
-          hist(matrat, probability = TRUE, col = rgb(0,0,1,0.25), main = "P1 homozygous states", xlab = "Allele ratio", xlim = c(0,100))
+          hist(matrat, probability = TRUE, col = rgb(0,0,1,0.25), main = "P2 homozygous states", xlab = "Allele ratio", xlim = c(0,100))
           points(x,y[,"mat"],type="l",col=ecolors[3])
           legend("topleft",c("Fitted P2 distribution"),
                  lty = 1, col = c("blue"), cex = .7)
@@ -233,23 +236,6 @@ RTIGER = function(expDesign,
       }
 
     }
-
-    # Running Frequency -------------------------------------------------------
-
-    myx = lapply(vit, function(samp){
-      myp = lapply(seqlevels(samp), function(chr){
-        myn = samp[seqnames(samp) == chr]
-        myn = Vit2GrangesGen(myn, "Viterbi")
-        seqlengths(myn) = seqlengths(samp)
-        return(myn)
-      })
-      names(myp) = seqlevels(samp)
-      return(myp)
-    })
-
-
-    myf = file.path(outputdir, "GenomicFrequencies.pdf")
-    plotFreqgen(myx = myx, tiles = tiles, file = myf, info = info, groups = NULL, verbose = verbose)
 
   }
 

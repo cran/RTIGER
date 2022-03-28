@@ -183,7 +183,7 @@ function zeta(
             end
         end
     end
-    #Noramlisation and exponantial
+    #Normalisation and exponential
     PO = maximum(zeta)
     return exp.(zeta .- PO)
 end
@@ -290,7 +290,16 @@ function transitionMultiple(
         end
     end
     sumSamples = sum(sumZeta[2:size(sumZeta)[1], :, :], dims = 1)[1, :, :]
-    A = sumSamples ./ sum(sumSamples, dims = 2)
+    # Catch out: all transitions equal zero
+    summedSumSamples=sum(sumSamples, dims = 2)
+    sTzeros=findall(iszero,summedSumSamples)
+    if length(sTzeros)>0
+        @info "One row of transition probabilities is completely zero, there might be not enough information for one state."
+        for indexZ in sTzeros
+            summedSumSamples[indexZ]=1
+        end
+    end
+    A = sumSamples ./ summedSumSamples
     # Check:
     !any((x -> ((x < 0) | (x > 1))), A) ||
         error("Some transition probability is not in the range of 0 to 1.")
@@ -483,10 +492,13 @@ function viterbi(PI::Array, PSI::Array, psi::Array, A::Array, r::Integer)
 
     a = diag(A)
     (s, T) = size(psi)
-    phi = zeros(s, T)
+    phi = -Inf*ones(s,T)
     b = Array{Int}(undef, s, T)
-    phi[:, 1:r] = PSI[:, 1:r] .+ PI
-    b[:, 1:r] = repeat(collect(1:s), 1, r)
+    phi[:, r] = PSI[:, r] .+ PI
+    b[:, 1:r] = repeat(collect(1:s), 1,r)
+    # for t=r+1:2*r
+    #     phi[:,t]= psi[:, t] + a + phi[:, t-1]
+    # end
     for t = r+1:T
         d = psi[:, t] + a + phi[:, t-1]
         nd = A .+ PSI[:, t]' .+ phi[:, t-r]
@@ -620,6 +632,11 @@ function EM(Observations::AbstractDict, logParameter::AbstractDict, iteration, p
     # list of the logarithm of the psi values
     psi = Dict()
 
+    if printbool
+        d=open("debugInfo.txt","a")
+        write(d,string("sample chromosome psi forward backward zeta gamma\n"))
+        close(d)
+    end
     for c in keys(O)
         Oc = O[c]
         Z[c] = Dict()
@@ -629,7 +646,10 @@ function EM(Observations::AbstractDict, logParameter::AbstractDict, iteration, p
         psi[c] = Dict()
         for i in keys(Oc)
             if printbool
-                display(string("start of sample ",c," chromosom ",i))
+                d=open("debugInfo.txt","a")
+                write(d,string(c," ",i," "))
+                close(d)
+                start=time()
             end
             OChr = Oc[i]
             Tc = size(OChr)[1]
@@ -637,7 +657,11 @@ function EM(Observations::AbstractDict, logParameter::AbstractDict, iteration, p
             logpsi = getlogpsi(OChr, aAlt, bAlt)
             logPSI = productpsi(logpsi, rigidity)
             if printbool
-                display("Start of the forward algorithm")
+                t=time()-start
+                d=open("debugInfo.txt","a")
+                write(d,string(t," "))
+                close(d)
+                start=time()
             end
             # Calculation of alpha, beta, zeta and gamma for each observation chain
             alphac = forward(
@@ -650,19 +674,38 @@ function EM(Observations::AbstractDict, logParameter::AbstractDict, iteration, p
                 logpsi,
             )
             if printbool
-                display("Start of the backward algorithm")
+                t=time()-start
+                d=open("debugInfo.txt","a")
+                write(d,string(t," "))
+                close(d)
+                start=time()
             end
             betac =
                 backward(Tc, rigidity, nstates, logPSI, logTransition, logpsi)
             if printbool
-                display("Calculation of Zeta")
+                t=time()-start
+                d=open("debugInfo.txt","a")
+                write(d,string(t," "))
+                close(d)
+                start=time()
             end
             zetac = zeta(alphac, betac, logTransition, logPSI, logpsi, rigidity)
             if printbool
-                display("Calculation of gamma")
+                t=time()-start
+                d=open("debugInfo.txt","a")
+                write(d,string(t," "))
+                close(d)
+                start=time()
             end
             gammac = gamma(zetac, alphac, betac, rigidity, c, i, iteration)
 
+            if printbool
+                t=time()-start
+                d=open("debugInfo.txt","a")
+                write(d,string(t,"\n"))
+                close(d)
+                start=time()
+            end
             # save in the global lists
             Z[c][i] = zetac
             G[c][i] = gammac
@@ -672,13 +715,15 @@ function EM(Observations::AbstractDict, logParameter::AbstractDict, iteration, p
 
         end
     end
-    if printbool
-        display("transition and start update")
-    end
+
     Anew = transitionMultiple(Z, rigidity, nstates)
     PInew = startMultiple(G, nstates)
     if printbool
-        display("emission update")
+        t=time()-start
+        d=open("debugInfo.txt","a")
+        write(d,string("transition and start update took ",t," seconds.\n"))
+        close(d)
+        start=time()
     end
     (a, b, m, tau) = emissionMultiple(
         O,
@@ -687,6 +732,13 @@ function EM(Observations::AbstractDict, logParameter::AbstractDict, iteration, p
         alpha_old = logParameter[:paraBetaAlpha],
         beta_old = logParameter[:paraBetaBeta],
     )
+    if printbool
+        t=time()-start
+        d=open("debugInfo.txt","a")
+        write(d,string("emission update took ",t," seconds.\n"))
+        close(d)
+    end
+
 
     return (G, Anew, PInew, a, b, alpha, beta, psi, m, tau)
 end
@@ -870,10 +922,13 @@ function fit(
     nsamples = 20,
     specific = nothing,
     post_processing = true,
-    PRINT=false,
+    DEBUG=false,
 )
-    if PRINT
-        display("Start in Julia")
+    if DEBUG
+        # display("Start in Julia")
+        touch("debugInfo.txt")
+        # display(string(pwd()))
+        start=time()
     end
     #pick of observations
     if (all)
@@ -918,17 +973,25 @@ function fit(
             Observations[s] = input_Observations[s]
         end
     end
-    if (PRINT)
-        display("chosing done")
+    if (DEBUG)
+        t=time()-start
+        d=open("debugInfo.txt","w")
+        write(d,string("Selection of the samples took ", t," seconds.\n 1.EM:\n"))
+        close(d)
+        start=time()
     end
     # Initial parameters
     parameter = initial_parameter
     nstates = parameter[:nstates]
     rigidity = parameter[:rigidity]
     (Gamma, traNeu, startNeu, aNeu, bNeu, alpha, beta, psi, m, tau) =
-        EM(Observations, parameter, 1,PRINT)
-    if (PRINT)
-        display("first EM")
+        EM(Observations, parameter, 1,DEBUG)
+    if (DEBUG)
+        t=time()-start
+        d=open("debugInfo.txt","a")
+        write(d,string("Whole EM step took ", t," seconds.\n"))
+        close(d)
+        start=time()
     end
     #Change of the parameters of the BetaBinomial distribution
     er = maximum(
@@ -952,8 +1015,10 @@ function fit(
             break
         end
         abbruch += 1
-        if PRINT
-            display(string(abbruch,". Iteration"))
+        if DEBUG
+            d=open("debugInfo.txt","a")
+            write(d,string(abbruch,". iteration\n"))
+            close(d)
         end
         parameter[:paraBetaAlpha] = aNeu
         parameter[:paraBetaBeta] = bNeu
@@ -962,7 +1027,7 @@ function fit(
         parameter[:logtransition] = log.(traNeu)
         parameter[:logpi] = log.(startNeu)
         (Gamma, traNeu, startNeu, aNeu, bNeu, alpha, beta, psi, m, tau) =
-            EM(Observations, parameter, (abbruch + 1),PRINT)
+            EM(Observations, parameter, (abbruch + 1),DEBUG)
         er = maximum(
             [abs.(parameter[:paraBetaAlpha] - aNeu) abs.(
                 parameter[:paraBetaBeta] - bNeu,
@@ -989,14 +1054,17 @@ function fit(
 
     vit = viterbi(input_Observations, parameter)
 
-    if PRINT
-        display("before post_processing")
+    if DEBUG
+        start=time()
     end
     if post_processing
         vit_new = postprocessing(input_Observations, vit, parameter)
     end
-    if PRINT
-        display("fitting done")
+    if DEBUG
+        t=time()-start
+        d=open("debugInfo.txt","a")
+        write(d,string("Post processing took ",t," seconds.\n"))
+        close(d)
     end
 
     # Returns:
