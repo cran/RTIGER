@@ -1,7 +1,7 @@
 Package: RTIGER
 Type: Package
 Title: HMM-Based Model for Genotyping and Cross-Over Identification
-Version: 1.99.0
+Version: 2.1.0
 Authors@R: c(
     person("Rafael", "Campos-Martin", email = "rfael.mpi@gmail.com", role = c("cre"), comment = c(ORCID = "0000-0002-1395-8571")),
     person("Sophia", "Schmickler", email = "so4a_schmickler@t-online.de", role = c("aut")),
@@ -9,20 +9,20 @@ Authors@R: c(
     person("Korbinian", "Schneeberger", email = "schneeberger@mpipz.mpg.de", role = c("aut")),
     person("Achim", "Tresch", email = "achim.tresch@uni-koeln.de", role= c("aut"))
     )
-Description: Our method integrates information from all sequenced samples, thus avoiding loss of alleles due to low coverage. Moreover, it increases the statistical power to uncover sequencing or alignment errors. 
+Description: Our method integrates information from all sequenced samples, thus avoiding loss of alleles due to low coverage. Moreover, it increases the statistical power to uncover sequencing or alignment errors <doi:10.1093/plphys/kiad191>. 
 Depends: R (>= 3.6), GenomicRanges, GenomeInfoDb
 License: GPL (>= 2)
 Encoding: UTF-8
 LazyData: true
 LazyDataCompression: gzip
-Imports: methods, e1071, reshape2, ggplot2, TailRank, JuliaCall,
-        IRanges, qpdf, grDevices, graphics, stats, utils
-RoxygenNote: 7.1.2
+Imports: methods, e1071, extraDistr, reshape2, ggplot2, TailRank,
+        JuliaCall, IRanges, qpdf, grDevices, graphics, stats, utils
+RoxygenNote: 7.2.3
 VignetteBuilder: knitr
 Suggests: knitr, rmarkdown, markdown, Gviz, rtracklayer
 biocViews: GenomeAnnotation, HiddenMarkovModel, Sequencing
 NeedsCompilation: no
-Packaged: 2022-03-28 15:08:47 UTC; campos
+Packaged: 2023-03-29 08:50:35 UTC; campos
 Author: Rafael Campos-Martin [cre] (<https://orcid.org/0000-0002-1395-8571>),
   Sophia Schmickler [aut],
   Manish Goel [ctb],
@@ -30,4 +30,4 @@ Author: Rafael Campos-Martin [cre] (<https://orcid.org/0000-0002-1395-8571>),
   Achim Tresch [aut]
 Maintainer: Rafael Campos-Martin <rfael.mpi@gmail.com>
 Repository: CRAN
-Date/Publication: 2022-03-28 15:40:02 UTC
+Date/Publication: 2023-03-29 09:20:02 UTC
